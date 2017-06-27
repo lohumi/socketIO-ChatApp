@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+    <head><title>Chat App</title></head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">  
+    <script src="/socket.io/socket.io.js"></script>
+     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+    var socket = io();
+    var user;
+         $(document).ready(function(){
+        
+         $("#chatDiv").hide();
+         $("#mainDiv").show();
+        
+        $("#message").on("keyup", function (event) {
+            //alert('key pressed by '+user);
+                socket.emit("sender", {
+                    name: user
+                });
+            });
+        });
+        function setUsername(){
+            
+            if($('#name').val()==''){
+                $('#error-container').text('please choose a name').css('color', 'red');
+            }
+            else{
+            socket.emit('setUsername', document.getElementById('name').value);
+            user=$('#name').value;
+            $('#name').val('');
+            $('#error-container').text('');
+            }
+        };
+        
+        var usersList=[];
+        
+        socket.on('userExists', function(data){
+             $('#error-container').text(data).css('color', 'red');
+        });
+
+        socket.on('userSet', function(data,usersList){
+            user=data.username;
+            usersList = usersList;
+            $("#chatDiv").show();
+            $("#mainDiv").hide();           
+                        
+            //bind all the users to dropdownlist
+            //('#myselect').append($('<option>').text(value).attr('value', index));
+            //$("select").append($("<option></option>").val(data.username).html(data.username));
+            $.each(usersList, function(index, value) {
+            $("select").append($('<option>').text(value).attr('value', index));
+            });
+             //user joined msg
+             
+             $('#message-container').append('<div>'+ user +' has joined.</div>');
+        });
+        function sendMessage(){
+            var msg = $('#message').val();
+            $('#message').val('');
+            if(msg){
+                socket.emit('msg', {message: msg, user: user});
+                
+            }
+        }
+        //print new message on UI
+        socket.on('newmsg', function(data){
+            if(user){
+                document.getElementById('message-container').innerHTML += '<div><b>' + data.user + '</b>: ' + data.message + '</div>'
+            }
+        });
+
+            //tell others that user is typing 
+        socket.on("sender", function (data) {
+            $("#status").html(data.name + " is typing");
+            setTimeout(function () {
+                $("#status").html('');
+            }, 3000);
+        }); 
+        function logout(){
+            socket.emit('logout', user);
+        };
+        socket.on('logout',function(data){
+            //alert('user left'+data);
+            
+
+            $('#message-container').append('<div>'+ data +' has left.</div>');
+             /*$("#chatDiv").hide();
+            $("#mainDiv").show();*/
+
+        });
+      //  });
+    </script>
+    <body><div id="error-container"></div>
+    
+    <div id="mainDiv" class="page-header" >
+        <h3>please choose a name to start chat</h3>
+        <input id="name"  type="text" name="name" placeholder="Enter your name!" required>
+        <!-- <input type="submit" name="start chat" onclick="setUsername()"> -->
+       <button type="button" name="button" onclick="setUsername()" class="btn btn-primary ">chat now
+       </button>
+    </div>
+
+       <div id="chatDiv">
+           <div class="page-header text-center">
+            <h1> Welcome to chatroom</h1>
+            <a href="/logout" class="btn btn-default btn-sm">Logout</a>
+             <!-- <button type="button"  onclick="logout()" class="btn btn-default btn-sm ">Logout
+             </button> -->
+            </div>
+            <div id="status"></div>
+           <!-- <h3>please choose a user from the drodown whome you wish to chat</h3> -->
+           <input type="text" id="message" placeholder="type a message">
+            <button type="button" name="button" onclick="sendMessage()" class="btn btn-success ">Send</button>
+            
+            <span>Users who joined: </span><select name="userslist" ></select> <br><br>
+            <div id="message-container"></div>
+                      
+       </div> 
+       <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+<!-- <script type="text/javascript" src="./controller/userController.js"></script> -->
+
+           </body>
+</html>
